@@ -3,11 +3,14 @@ package com.restfullapi.rest.controller;
 import com.restfullapi.rest.model.Task;
 import com.restfullapi.rest.repository.TodoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
+@RequestMapping("/api/tasks")
 public class TodoController {
 
 
@@ -19,30 +22,42 @@ public class TodoController {
         return "Hola Mundo";
     }
 
-    @GetMapping("/tasks")
-    public List<Task> getTasks(){
-        return todoRepository.findAll();
+    @GetMapping
+    public  ResponseEntity<List<Task>> getTasks(){
+        return ResponseEntity.ok(todoRepository.findAll());
     }
 
-    @PostMapping("/saveTasks")
-    public String saveTask(@RequestBody Task task){
+    @PostMapping
+    public ResponseEntity<Task> createTask(@RequestBody Task task){
+    	Task savedTask = todoRepository.save(task);
         todoRepository.save(task);
-        return "save tasks";
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedTask);
     }
 
-    @PutMapping("/updateTask/{id}")
-    public String updatedTask(@PathVariable Long id,@RequestBody Task task){
-        Task updateTask = todoRepository.findById(id).get();
-        updateTask.setTitle(task.getTitle());
-        updateTask.setDescription(task.getDescription());
-        todoRepository.save((updateTask));
-        return "update ok!!!";
+    @PutMapping("/{id}")
+    public ResponseEntity<Task> updatedTask(@PathVariable Long id,@RequestBody Task task){
+        return todoRepository.findById(id)
+        		.map(existingTask -> {
+        			existingTask.setTitle(task.getTitle());
+        			existingTask.setDescription(task.getDescription());
+        			Task updated = todoRepository.save(existingTask);
+        			return ResponseEntity.ok(updated);
+        		})
+        		.orElse(ResponseEntity.notFound().build());
     }
 
-    @DeleteMapping("/deleteTask/{id}")
-    public String deleteTask(@PathVariable Long id){
-        Task deletedTask = todoRepository.findById(id).get();
-        todoRepository.delete(deletedTask);
-        return "deleted  task";
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteTask(@PathVariable Long id){
+    	
+    	return todoRepository.findById(id)
+				.map(task -> {
+					todoRepository.delete(task);
+					return ResponseEntity.noContent().<Void>build();
+				})
+				.orElse(ResponseEntity.notFound().build());
     }
+    
 }
+    
+    
+    
