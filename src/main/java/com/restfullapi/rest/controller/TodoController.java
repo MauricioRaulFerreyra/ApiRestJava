@@ -1,7 +1,11 @@
 package com.restfullapi.rest.controller;
 
-import com.restfullapi.rest.model.Task;
-import com.restfullapi.rest.repository.TodoRepository;
+import com.restfullapi.rest.dto.request.TaskRequest;
+import com.restfullapi.rest.dto.response.TaskResponse;
+import com.restfullapi.rest.service.TaskService;
+
+import jakarta.validation.Valid;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,46 +19,43 @@ public class TodoController {
 
 
     @Autowired
-    private TodoRepository todoRepository;
-
-    @GetMapping("/")
-    public String holamundo(){
-        return "Hola Mundo";
-    }
+    private TaskService taskService;
 
     @GetMapping
-    public  ResponseEntity<List<Task>> getTasks(){
-        return ResponseEntity.ok(todoRepository.findAll());
+    public ResponseEntity<List<TaskResponse>> getTasks(){
+        return ResponseEntity.ok(taskService.getAll());
+    }
+    
+    @GetMapping("/{id}")
+    public ResponseEntity<TaskResponse> getTask(
+    		@PathVariable Long id ){
+    	
+        return ResponseEntity.ok(taskService.getById(id));
     }
 
     @PostMapping
-    public ResponseEntity<Task> createTask(@RequestBody Task task){
-    	Task savedTask = todoRepository.save(task);
-        todoRepository.save(task);
-        return ResponseEntity.status(HttpStatus.CREATED).body(savedTask);
+    public ResponseEntity<TaskResponse> createTask(
+            @Valid @RequestBody TaskRequest request){
+
+        TaskResponse response = taskService.create(request);
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(response);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Task> updatedTask(@PathVariable Long id,@RequestBody Task task){
-        return todoRepository.findById(id)
-        		.map(existingTask -> {
-        			existingTask.setTitle(task.getTitle());
-        			existingTask.setDescription(task.getDescription());
-        			Task updated = todoRepository.save(existingTask);
-        			return ResponseEntity.ok(updated);
-        		})
-        		.orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<TaskResponse> updateTask(
+            @PathVariable Long id,
+            @Valid @RequestBody TaskRequest request){
+
+        return ResponseEntity.ok(taskService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTask(@PathVariable Long id){
-    	
-    	return todoRepository.findById(id)
-				.map(task -> {
-					todoRepository.delete(task);
-					return ResponseEntity.noContent().<Void>build();
-				})
-				.orElse(ResponseEntity.notFound().build());
+        taskService.delete(id);
+        return ResponseEntity.noContent().build();
     }
     
 }
